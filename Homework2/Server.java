@@ -73,6 +73,7 @@ public class Server {
 					System.out
 							.println(_clock.toString() 
 									+ ":Release received from Server " + otherAction.toString());
+					executeCriticalSection(_serverQueue.get(0));
 					_serverQueue.remove(0);
 					break;
 				default:
@@ -187,6 +188,7 @@ public class Server {
 			case "delete":
 				response = _inventory.RemoveReservation(bufferArray[1]);
 				break;
+				
 			default:
 				response = "ERROR: No such command";
 				break;
