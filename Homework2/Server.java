@@ -80,10 +80,13 @@ public class Server {
 					break;
 
 				}
-
+				
+				while(_serverQueue.size() > 0 && _serverQueue.get(0).getServerId() == _myID && _serverQueue.get(0).getAcknowledgements()!=_listOfServers.size() ) {
+					//wait
+				}
 
 				// TODO count responses from the notify thread before execution
-				if (_serverQueue.size() > 0 && _serverQueue.get(0).getServerId() == _myID) {
+				if (_serverQueue.size() > 0 && _serverQueue.get(0).getServerId() == _myID && _serverQueue.get(0).getAcknowledgements()==_listOfServers.size()) {
 
 					System.out.println(
 							_clock.toString() + ":Entering Critical Section for :" + otherAction.toString());
@@ -95,12 +98,16 @@ public class Server {
 
 					Thread t = new Thread(new SendReleaseToOtherServers(_myID,_clock, _listOfServers));
 					t.start();
+					t.join();
 				}
 				_serverSocket.close();
 			}
 		} catch (IOException | ClassNotFoundException e) {
 			System.err.println("Server aborted: " + e);
 
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 
 	}
@@ -170,7 +177,7 @@ public class Server {
 	 * @param otherAction
 	 * @return response to Client
 	 */
-	private static String executeCriticalSection(ServerCommand otherAction) {
+	private synchronized static String executeCriticalSection(ServerCommand otherAction) {
 		String[] bufferArray = otherAction.getAction().split(" ");
 		String response = "";
 		if (bufferArray.length > 1) {

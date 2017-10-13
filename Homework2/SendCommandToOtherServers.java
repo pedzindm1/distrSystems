@@ -25,7 +25,7 @@ public class SendCommandToOtherServers implements Runnable {
 	}
 
 	@Override
-	public void run() {
+	public synchronized void run() {
 		System.out.println("SendCommandToOtherServers started.");
 		int acknowledgementsFromServer = 1;
 

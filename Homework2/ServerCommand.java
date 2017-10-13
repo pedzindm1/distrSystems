@@ -75,14 +75,14 @@ public class ServerCommand implements Serializable {
 	/**
 	 * returns the acknowledgements for serverCommand
 	 */
-	public int getAcknowledgements() {
+	public synchronized int getAcknowledgements() {
 		return _acknowledgements;
 	}
 	/**
 	 * sets the acknowledgements for serverCommand
 	 * @param acknowledgements
 	 */
-	public void setAcknowledgements(int acknowledgements) {
+	public synchronized void setAcknowledgements(int acknowledgements) {
 		this._acknowledgements = acknowledgements;
 	}
 

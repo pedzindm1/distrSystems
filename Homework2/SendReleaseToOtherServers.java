@@ -23,7 +23,7 @@ public class SendReleaseToOtherServers implements Runnable {
 		
 	}
 	@Override
-	public void run() {
+	public synchronized void run() {
 		System.out.println("SendReleaseToOtherServers started.");
 
 		for (int i = 0; i < _listOfOtherServers.size(); i++) {
