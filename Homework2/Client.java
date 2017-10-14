@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
+import java.net.ConnectException;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
@@ -11,6 +12,8 @@ import java.util.Scanner;
  *
  */
 public class Client {
+
+	private static final int SERVER_TIMEOUT = 100;
 
 	private static ArrayList<ServerMetadata> _listOfServers = new ArrayList<ServerMetadata>();
 	private static int _numberOfServers = 0;
@@ -46,14 +49,17 @@ public class Client {
 	 */
 	private static void initializeClient(Scanner sc) {
 		_numberOfServers = sc.nextInt();
+		int i = 0;
 
 		while (_listOfServers.size() < _numberOfServers) {
+			i++;
+
 			String serverInfo = sc.nextLine();
 			if (!serverInfo.isEmpty()) {
 				String[] partsOfServerAddress = serverInfo.split(":");
 				if (partsOfServerAddress.length == 2) {
 					ServerMetadata serverObj = new ServerMetadata(partsOfServerAddress[0],
-							Integer.parseInt(partsOfServerAddress[1]));
+							Integer.parseInt(partsOfServerAddress[1]), i);
 					_listOfServers.add(serverObj);
 					System.out.println("Server " + _listOfServers.size() + " is " + serverObj.toString());
 				} else {
@@ -74,9 +80,7 @@ public class Client {
 			try {
 				socket = new Socket(_listOfServers.get(serverNumber).getIpAddress(),
 						_listOfServers.get(serverNumber).getPortAddress());
-				// TODO: Uncomment this so the connection will move on to the next server if the
-				// connection dies
-				// socket.setSoTimeout(100);
+				socket.setSoTimeout(SERVER_TIMEOUT);
 				ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
 
 				// Creates the ServerCommand and sends it to the server
@@ -94,10 +98,8 @@ public class Client {
 				out.close();
 				// Stop sending to servers
 				break;
-			} catch (SocketTimeoutException e) {
-				// TODO: Uncomment this so the connection will move on to the next server if the
-				// connection dies
-				// _listOfServers.remove(serverNumber);
+			} catch (SocketTimeoutException | ConnectException e) {
+				//timeout or no connection
 				continue;
 			} catch (Exception e) {
 				System.err.println(e);

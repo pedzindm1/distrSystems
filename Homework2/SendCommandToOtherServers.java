@@ -1,13 +1,17 @@
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.ConnectException;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 
 public class SendCommandToOtherServers implements Runnable {
+	private static final int SERVER_TIMEOUT = 100;
+
 	private int _myID;
 	private ArrayList<ServerMetadata> _listOfOtherServers = null;
+	private ArrayList<ServerMetadata> _listOfDownServers = null;
 	private ServerCommand _action;
 
 	/**
@@ -17,11 +21,11 @@ public class SendCommandToOtherServers implements Runnable {
 	 * @param listOfOtherServers
 	 * @param action
 	 */
-	public SendCommandToOtherServers(int myID, ServerCommand action, ArrayList<ServerMetadata> listOfOtherServers) {
+	public SendCommandToOtherServers(int myID, ServerCommand action, ArrayList<ServerMetadata> listOfOtherServers, ArrayList<ServerMetadata> listOfDownServers) {
 		_myID = myID;
 		_listOfOtherServers = listOfOtherServers;
 		_action = action;
-
+		_listOfDownServers = listOfDownServers;
 	}
 
 	@Override
@@ -30,17 +34,17 @@ public class SendCommandToOtherServers implements Runnable {
 		int acknowledgementsFromServer = 1;
 
 		for (int i = 0; i < _listOfOtherServers.size(); i++) {
-			if (i != (_myID - 1)) {
+			if (_listOfOtherServers.get(i).get_serverID() != (_myID)) {
 				try {
 					Socket newSocket = new Socket(_listOfOtherServers.get(i).getIpAddress(),
 							_listOfOtherServers.get(i).getPortAddress());
-					// TODO: Uncomment before turn in
-					// newSocket.setSoTimeout(100);
+					newSocket.setSoTimeout(SERVER_TIMEOUT);
 
 					// Send Message to other Servers
 					ObjectOutputStream oos = new ObjectOutputStream(newSocket.getOutputStream());
 					oos.writeObject(_action);
 					oos.flush();
+
 					// receive acknowledgement from other servers
 					ObjectInputStream ois = new ObjectInputStream(newSocket.getInputStream());
 					ServerCommand acknowledgement = (ServerCommand) ois.readObject();
@@ -50,10 +54,12 @@ public class SendCommandToOtherServers implements Runnable {
 
 					newSocket.close();
 
-				} catch (SocketTimeoutException e) {
-					// TODO: Uncomment this so the connection will move on to the next server if the
-					// connection dies
-					// _listOfServers.remove(serverNumber);
+				} catch (SocketTimeoutException | ConnectException e) {
+					//timeout or connection error
+					//remove the server from the list, caller should see this change
+					_listOfDownServers.add(_listOfOtherServers.get(i));
+					_listOfOtherServers.remove(i);
+
 					continue;
 				} catch (IOException | ClassNotFoundException e) {
 					System.err.println(e.getMessage());

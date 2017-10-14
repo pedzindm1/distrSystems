@@ -1,12 +1,16 @@
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.net.ConnectException;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 
 public class SendReleaseToOtherServers implements Runnable {
+	private static final int SERVER_TIMEOUT = 100;
+
 	private int _myID;
 	private ArrayList<ServerMetadata> _listOfOtherServers = null;
+	private ArrayList<ServerMetadata> _listOfDownServers = null;
 	private ServerCommand _action;
 
 	/**
@@ -16,9 +20,10 @@ public class SendReleaseToOtherServers implements Runnable {
 	 * @param listOfOtherServers
 	 * @param action
 	 */
-	public SendReleaseToOtherServers(int myID, LamportClock clock, ArrayList<ServerMetadata> listOfOtherServers) {
+	public SendReleaseToOtherServers(int myID, LamportClock clock, ArrayList<ServerMetadata> listOfOtherServers, ArrayList<ServerMetadata> listOfDownServers) {
 		_myID = myID;
 		_listOfOtherServers = listOfOtherServers;
+		_listOfDownServers = listOfDownServers;
 		_action = new ServerCommand("release",new LamportClock(clock.getTimestamp()+1), ServerCommandType.releaseMessage, myID);
 		
 	}
@@ -27,12 +32,12 @@ public class SendReleaseToOtherServers implements Runnable {
 		System.out.println("SendReleaseToOtherServers started.");
 
 		for (int i = 0; i < _listOfOtherServers.size(); i++) {
-			if (i != (_myID - 1)) {
+			if (_listOfOtherServers.get(i).get_serverID() != (_myID)) {
 				try {
 					Socket newSocket = new Socket(_listOfOtherServers.get(i).getIpAddress(),
 							_listOfOtherServers.get(i).getPortAddress());
-					// TODO: Uncomment before turn in
-					// newSocket.setSoTimeout(100);
+					newSocket.setSoTimeout(SERVER_TIMEOUT);
+
 					// Send Message to other Servers
 					ObjectOutputStream oos = new ObjectOutputStream(newSocket.getOutputStream());
 					oos.writeObject(_action);
@@ -40,10 +45,12 @@ public class SendReleaseToOtherServers implements Runnable {
 
 					newSocket.close();
 
-				} catch (SocketTimeoutException e) {
-					// TODO: Uncomment this so the connection will move on to the next server if the
-					// connection dies
-					// _listOfServers.remove(serverNumber);
+				} catch (SocketTimeoutException | ConnectException e) {
+					//timeout or connection error
+					//remove the server
+					_listOfDownServers.add(_listOfOtherServers.get(i));
+					_listOfOtherServers.remove(i);
+
 					continue;
 				} catch (IOException e) {
 					System.err.println(e.getMessage());

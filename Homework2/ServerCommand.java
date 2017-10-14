@@ -29,6 +29,17 @@ public class ServerCommand implements Serializable {
 	
 	private ServerCommandType _messageType;
 
+	private SeatInventory _inventory;
+
+	public SeatInventory getInventory() {
+		return _inventory;
+	}
+
+	public boolean hasInventory() {
+		return _inventory != null;
+
+	}
+
 	/**
 	 * @return the _messageType
 	 */
@@ -121,6 +132,14 @@ public class ServerCommand implements Serializable {
 		_action = action;
 		_serverId = serverId;
 		_messageType = messageType;
+	}
+
+	public ServerCommand(String action, LamportClock timestamp, ServerCommandType messageType, int serverId, SeatInventory inventory) {
+		_clock = timestamp;
+		_action = action;
+		_serverId = serverId;
+		_messageType = messageType;
+		_inventory = inventory;
 	}
 
 	/*

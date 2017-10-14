@@ -6,6 +6,12 @@
  */
 public class ServerMetadata {
 
+
+	private int _serverID;
+	public int get_serverID() {
+		return _serverID;
+	}
+
 	/**
 	 * IP address of the Server
 	 */
@@ -22,6 +28,7 @@ public class ServerMetadata {
 	public ServerMetadata() {
 		_ipAddress = new String("");
 		_portAddress = 0;
+		_serverID = 0;
 	}
 
 
@@ -31,9 +38,10 @@ public class ServerMetadata {
 	 * @param ipAddress
 	 * @param portAddress
 	 */
-	public ServerMetadata(String ipAddress, int portAddress) {
+	public ServerMetadata(String ipAddress, int portAddress, int serverID) {
 		_ipAddress = ipAddress;
 		_portAddress = portAddress;
+		_serverID = serverID;
 	}
 
 	/**

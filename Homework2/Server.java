@@ -12,6 +12,7 @@ public class Server {
 	private static int _numServer;
 	private static int _numSeat;
 	private static ArrayList<ServerMetadata> _listOfServers;
+	private static ArrayList<ServerMetadata> _listOfDownServers;
 	private static SeatInventory _inventory;
 	private static ArrayList<ServerCommand> _serverQueue;
 	private static ServerSocket _serverSocket;
@@ -22,11 +23,13 @@ public class Server {
 		Scanner sc = new Scanner(System.in);
 		initializeServer(sc);
 
+        ServerMetadata myServerMetadata = _listOfServers.get(_myID - 1);
+
 		try {
 			while (true) {
 
 				// creates Object Stream and reads the Command from the Socket
-				_serverSocket = new ServerSocket(_listOfServers.get(_myID - 1).getPortAddress());
+				_serverSocket = new ServerSocket(myServerMetadata.getPortAddress());
 
 				Socket socket = _serverSocket.accept();
 				ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
@@ -44,12 +47,17 @@ public class Server {
 
 					addCommandToQueue(otherAction);
 					// notify other Servers of received Message
-					Thread t = new Thread(new SendCommandToOtherServers(_myID, otherAction,_listOfServers));
+					Thread t = new Thread(new SendCommandToOtherServers(_myID, otherAction,_listOfServers, _listOfDownServers));
 					t.start();
 					break;
 
 				// Received a TimeStamp Message from other Server
 				case acknowledgementMessage:
+				    //this is where the current inventory will be sent if the server is new
+                    if (otherAction.hasInventory()) {
+				        _inventory = otherAction.getInventory();
+                    }
+
 					_clock.receiveMessageAction(otherAction.getClock());
 					System.out.println(
 							_clock.toString() 
@@ -58,6 +66,21 @@ public class Server {
 
 				// Received a ServerCommand Message from other Server
 				case notifyMessage:
+				    //if receiving a command from a server not in the list,
+                    //  add the server back into the list and send the inventory
+                    //this is a total hack, but no time to refactor
+                    //the only thing we have is the serverID
+                    if (_listOfDownServers.size() > 0) {
+				        //check to see if ourServerID is in the down servers list
+                        for (int i = 0; i < _listOfDownServers.size(); i++) {
+                            if (otherAction.getServerId() == _listOfDownServers.get(i).get_serverID()) {
+                                //add the server back to the list
+                                _listOfServers.add(_listOfDownServers.get(i));
+                                _listOfDownServers.remove(i);
+                            }
+                        }
+                    }
+
 					System.out
 							.println(_clock.toString() 
 									+ ":Command received from Server " + otherAction.toString());
@@ -80,12 +103,12 @@ public class Server {
 					break;
 
 				}
-				
+
+				//if a server crashes, this will still wait for an ack, need to decrement the count it's waiting for
 				while(_serverQueue.size() > 0 && _serverQueue.get(0).getServerId() == _myID && _serverQueue.get(0).getAcknowledgements()!=_listOfServers.size() ) {
 					//wait
 				}
 
-				// TODO count responses from the notify thread before execution
 				if (_serverQueue.size() > 0 && _serverQueue.get(0).getServerId() == _myID && _serverQueue.get(0).getAcknowledgements()==_listOfServers.size()) {
 
 					System.out.println(
@@ -96,7 +119,7 @@ public class Server {
 					System.out.println(
 							_clock.toString() + ":Leaving Critical Section for :" + otherAction.toString());
 
-					Thread t = new Thread(new SendReleaseToOtherServers(_myID,_clock, _listOfServers));
+					Thread t = new Thread(new SendReleaseToOtherServers(_myID,_clock, _listOfServers, _listOfDownServers));
 					t.start();
 					t.join();
 				}
@@ -128,6 +151,7 @@ public class Server {
 		System.out.println(String.format("ID: %d, Servers: %d, Seats: %d", _myID, _numServer, _numSeat));
 
 		_listOfServers = new ArrayList<ServerMetadata>();
+        _listOfDownServers = new ArrayList<ServerMetadata>();
 		_inventory = new SeatInventory(_numSeat);
 		_serverQueue = new ArrayList<ServerCommand>();
 		_clock = new LamportClock();
@@ -138,9 +162,9 @@ public class Server {
 			String[] partsOfServerAddress = serverInfo.split(":");
 			if (partsOfServerAddress.length == 2) {
 				ServerMetadata serverObj = new ServerMetadata(partsOfServerAddress[0],
-						Integer.parseInt(partsOfServerAddress[1]));
+						Integer.parseInt(partsOfServerAddress[1]), i + 1);
 				_listOfServers.add(serverObj);
-				System.out.println(String.format("Server %d is %s", i + 1, serverObj.toString()));
+				System.out.println(String.format("Server %d is %s", serverObj.get_serverID(), serverObj.toString()));
 			}
 		}
 		System.out.println("listening for tcp");
@@ -170,6 +194,14 @@ public class Server {
 		oos.writeObject(timeStampAction);
 		oos.flush();
 	}
+
+    private static void sendAcknowledgementToServer(Socket socket, SeatInventory inventory) throws IOException {
+        _clock.sendMessageAction();
+        ServerCommand timeStampAction = new ServerCommand("ack",_clock, ServerCommandType.acknowledgementMessage, _myID, inventory);
+        ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+        oos.writeObject(timeStampAction);
+        oos.flush();
+    }
 
 	/**
 	 * Executes criticalSection commands
