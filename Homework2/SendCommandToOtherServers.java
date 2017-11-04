@@ -58,13 +58,13 @@ public class SendCommandToOtherServers implements Runnable {
 					//remove the server from the list, caller should see this change
 					//_listOfDownServers.add(_listOfOtherServers.get(i));
 					//_listOfOtherServers.remove(i);
-					System.out.print("Error with Server:"+ _listOfOtherServers.get(_myID-1).getPortAddress());
+					System.out.println("Error with Server:"+ _listOfOtherServers.get(_myID-1).getPortAddress());
 					//System.out.println(e.toString()+e.getMessage());
 					//e.printStackTrace();
 					acknowledgementsFromServer++;
 					//continue;
 				} catch (IOException | ClassNotFoundException e) {
-					System.out.print("Error with Server:"+ _listOfOtherServers.get(_myID-1).getPortAddress());
+					System.out.println("Error with Server:"+ _listOfOtherServers.get(_myID-1).getPortAddress());
 					//System.out.println(e.toString()+e.getMessage());
 					//e.printStackTrace();
 					//continue;

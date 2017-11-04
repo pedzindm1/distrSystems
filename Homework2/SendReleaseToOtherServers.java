@@ -49,12 +49,12 @@ public class SendReleaseToOtherServers implements Runnable {
 					//remove the server
 					//_listOfDownServers.add(_listOfOtherServers.get(i));
 					//_listOfOtherServers.remove(i);
-					System.out.print("Error with Server:"+ _listOfOtherServers.get(_myID-1).getPortAddress());
+					System.out.println("Error with Server:"+ _listOfOtherServers.get(_myID-1).getPortAddress());
 					//System.out.println(e.toString()+e.getMessage());
 					//e.printStackTrace();
 					//continue;
 				} catch (IOException e) {
-					System.out.print("Error with Server:"+ _listOfOtherServers.get(_myID-1).getPortAddress());
+					System.out.println("Error with Server:"+ _listOfOtherServers.get(_myID-1).getPortAddress());
 					//System.out.println(e.toString()+e.getMessage());
 					//e.printStackTrace();
 					//continue;

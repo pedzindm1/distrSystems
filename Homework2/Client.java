@@ -106,11 +106,11 @@ public class Client {
 				// close socket connection
 				socket.close();
 				// Stop sending to servers
-				System.out.print("Sent to Server"+ _listOfServers.get(serverNumber).getPortAddress());
+				//System.out.println("Sent to Server"+ _listOfServers.get(serverNumber).getPortAddress());
 				break;
 			} catch (IOException e) {
 				//timeout or no connection
-				System.out.print("Error with Server:"+ _listOfServers.get(serverNumber).getPortAddress());
+				//System.out.println("Error with Server:"+ _listOfServers.get(serverNumber).getPortAddress());
 				//System.out.println(e.toString()+e.getMessage());
 				//e.printStackTrace();
 				//continue;
