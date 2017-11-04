@@ -4,7 +4,7 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
-public class PPReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+public class PPReducer extends Reducer<String, IntWritable, String, IntWritable> {
 	private IntWritable result = new IntWritable();
 
 	public void reduce(Text key, Iterable<IntWritable> values, Context context)
@@ -14,6 +14,6 @@ public class PPReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
 			sum += val.get();
 		}
 		result.set(sum);
-		context.write(key, result);
+		context.write(key.toString(), result);
 	}
 }
