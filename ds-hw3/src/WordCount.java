@@ -47,53 +47,37 @@ public class WordCount {
         ) throws IOException, InterruptedException {
             int sum = 0;
             boolean check = false;
+/*
+darcy
+<chap18, 41>
+<chap10, 21>
+<chap16, 21>
+<chap33, 18>
 
+ */
             String fileName="";
 
-            String textString="{";
+            String textString="<";
 
             /*reducing by counting the filename against each key*/
 
-            for (Text val : values)
-
-                {
-
-                    if(!check)
-
-                    {
-
-                        fileName=val.toString();
-
-                        check=true;
-
-                    }
-
-                    if (fileName.equals(val.toString())){
-
-                        sum=sum+1; //for counting the number of occurance in each file
-
-                    }
-
-                    else
-
-                    {
-
-                        textString+=fileName + "="+sum +", ";
-
-                        fileName=val.toString();
-
-                        sum=1;
-
-                    }
-
+            for (Text val:values){
+                if(!check){
+                    fileName=val.toString();
+                    check=true;
                 }
 
-                textString+= fileName + "="+sum +"} \n"; //making output pattern
-
-            context.write(key, new Text(textString));
-
+                if (fileName.equals(val.toString())){
+                    sum=sum+1;
+                } else {
+                    textString = textString.trim() + fileName + ", " + sum + ">\n";
+                    fileName=val.toString();
+                    sum=1;
+                }
+            }
+            textString += fileName + ", " + sum +">\n";
+            context.write(new Text(key.toString().trim() + "\n"), new Text(textString));
         }
-
     }
 
     public static void main(String[] args) throws Exception {
