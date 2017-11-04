@@ -17,7 +17,7 @@ public class Server {
 	private static ArrayList<ServerCommand> _serverQueue;
 	private static ServerSocket _serverSocket;
 	private static LamportClock _clock;
-
+	private static Socket socket;
 	public static void main(String[] args) {
 		// Initialize Server
 		Scanner sc = new Scanner(System.in);
@@ -29,9 +29,14 @@ public class Server {
 			while (true) {
 
 				// creates Object Stream and reads the Command from the Socket
+				if(_serverSocket!=null&&_serverSocket.isBound())
+				{
+					_serverSocket.close();
+				}
 				_serverSocket = new ServerSocket(myServerMetadata.getPortAddress());
 
-				Socket socket = _serverSocket.accept();
+				socket = _serverSocket.accept();
+
 				ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
 				ServerCommand otherAction = (ServerCommand) ois.readObject();
 
@@ -46,9 +51,11 @@ public class Server {
 					otherAction.setMessageType( ServerCommandType.notifyMessage);
 
 					addCommandToQueue(otherAction);
+					socket.close();
 					// notify other Servers of received Message
 					Thread t = new Thread(new SendCommandToOtherServers(_myID, otherAction,_listOfServers, _listOfDownServers));
 					t.start();
+					t.join();
 					break;
 
 				// Received a TimeStamp Message from other Server
@@ -75,8 +82,8 @@ public class Server {
                         for (int i = 0; i < _listOfDownServers.size(); i++) {
                             if (otherAction.getServerId() == _listOfDownServers.get(i).get_serverID()) {
                                 //add the server back to the list
-                                _listOfServers.add(_listOfDownServers.get(i));
-                                _listOfDownServers.remove(i);
+                               // _listOfServers.add(_listOfDownServers.get(i));
+                               // _listOfDownServers.remove(i);
                             }
                         }
                     }
@@ -105,9 +112,9 @@ public class Server {
 				}
 
 				//if a server crashes, this will still wait for an ack, need to decrement the count it's waiting for
-				while(_serverQueue.size() > 0 && _serverQueue.get(0).getServerId() == _myID && _serverQueue.get(0).getAcknowledgements()!=_listOfServers.size() ) {
+				//while(_serverQueue.size() > 0 && _serverQueue.get(0).getServerId() == _myID && _serverQueue.get(0).getAcknowledgements()!=_listOfServers.size() ) {
 					//wait
-				}
+				//}
 
 				if (_serverQueue.size() > 0 && _serverQueue.get(0).getServerId() == _myID && _serverQueue.get(0).getAcknowledgements()==_listOfServers.size()) {
 
@@ -123,14 +130,19 @@ public class Server {
 					t.start();
 					t.join();
 				}
-				_serverSocket.close();
+				
 			}
 		} catch (IOException | ClassNotFoundException e) {
-			System.err.println("Server aborted: " + e);
+
+			//System.out.print("Error with Server:"+ myServerMetadata.getPortAddress());
+			//System.out.println(e.getMessage());
+			//e.printStackTrace();
 
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+
+			//System.out.print("Error with Server:"+ myServerMetadata.getPortAddress());
+			//System.out.println(e.getMessage());
+			//e.printStackTrace();
 		}
 
 	}
@@ -193,15 +205,16 @@ public class Server {
 		ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
 		oos.writeObject(timeStampAction);
 		oos.flush();
+		socket.close();
 	}
 
-    private static void sendAcknowledgementToServer(Socket socket, SeatInventory inventory) throws IOException {
-        _clock.sendMessageAction();
-        ServerCommand timeStampAction = new ServerCommand("ack",_clock, ServerCommandType.acknowledgementMessage, _myID, inventory);
-        ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-        oos.writeObject(timeStampAction);
-        oos.flush();
-    }
+//    private static void sendAcknowledgementToServer(Socket socket, SeatInventory inventory) throws IOException {
+//        _clock.sendMessageAction();
+//        ServerCommand timeStampAction = new ServerCommand("ack",_clock, ServerCommandType.acknowledgementMessage, _myID, inventory);
+//        ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+//        oos.writeObject(timeStampAction);
+//        oos.flush();
+//    }
 
 	/**
 	 * Executes criticalSection commands
@@ -247,9 +260,12 @@ public class Server {
 	 * @throws IOException
 	 */
 	private static void sendResponseToClient(Socket socket, String response) throws IOException {
+		socket = _serverSocket.accept();
+		System.out.println("Sent to Client: "+socket.getPort());
 		PrintWriter pout = new PrintWriter(socket.getOutputStream());
 		pout.println(response);
 		pout.flush();
+		socket.close();
 	}
 
 }

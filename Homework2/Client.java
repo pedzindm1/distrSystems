@@ -1,7 +1,9 @@
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
 import java.net.ConnectException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
@@ -78,32 +80,41 @@ public class Client {
 		for (int serverNumber = 0; serverNumber < _listOfServers.size(); serverNumber++) {
 			Socket socket;
 			try {
-				socket = new Socket(_listOfServers.get(serverNumber).getIpAddress(),
-						_listOfServers.get(serverNumber).getPortAddress());
-				socket.setSoTimeout(SERVER_TIMEOUT);
+				socket = new Socket();
+				socket.connect(new InetSocketAddress(_listOfServers.get(serverNumber).getIpAddress(),_listOfServers.get(serverNumber).getPortAddress()),SERVER_TIMEOUT);
 				ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
 
 				// Creates the ServerCommand and sends it to the server
 				ServerCommand action = new ServerCommand(new String(createActionString(tokens)));
 				out.writeObject(action);
-				out.flush();
-
+				out.close();
+				socket.close();
+				socket = new Socket(_listOfServers.get(serverNumber).getIpAddress(),
+						_listOfServers.get(serverNumber).getPortAddress());
+				socket.setSoTimeout(SERVER_TIMEOUT);
 				// Reads the response from the Server and displays it
 				BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 				String line;
+				while(!in.ready()) {
+					//wait
+				}
 				if ((line = in.readLine().toString()) != null) {
 					System.out.println(line);
 				}
+				
+				
 				// close socket connection
-				out.close();
+				socket.close();
 				// Stop sending to servers
+				System.out.print("Sent to Server"+ _listOfServers.get(serverNumber).getPortAddress());
 				break;
-			} catch (SocketTimeoutException | ConnectException e) {
+			} catch (IOException e) {
 				//timeout or no connection
-				continue;
-			} catch (Exception e) {
-				System.err.println(e);
-			}
+				System.out.print("Error with Server:"+ _listOfServers.get(serverNumber).getPortAddress());
+				//System.out.println(e.toString()+e.getMessage());
+				//e.printStackTrace();
+				//continue;
+			}  
 		}
 	}
 

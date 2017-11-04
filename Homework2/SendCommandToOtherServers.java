@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ConnectException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
@@ -34,12 +35,11 @@ public class SendCommandToOtherServers implements Runnable {
 		int acknowledgementsFromServer = 1;
 
 		for (int i = 0; i < _listOfOtherServers.size(); i++) {
-			if (_listOfOtherServers.get(i).get_serverID() != (_myID)) {
+			if (_listOfOtherServers.get(i).get_serverID() != _myID) {
 				try {
-					Socket newSocket = new Socket(_listOfOtherServers.get(i).getIpAddress(),
-							_listOfOtherServers.get(i).getPortAddress());
-					newSocket.setSoTimeout(SERVER_TIMEOUT);
-
+					Socket newSocket = new Socket();
+					newSocket.connect(new InetSocketAddress(_listOfOtherServers.get(i).getIpAddress(), _listOfOtherServers.get(i).getPortAddress()), SERVER_TIMEOUT);
+					
 					// Send Message to other Servers
 					ObjectOutputStream oos = new ObjectOutputStream(newSocket.getOutputStream());
 					oos.writeObject(_action);
@@ -51,19 +51,23 @@ public class SendCommandToOtherServers implements Runnable {
 					if (acknowledgement.getMessageType() == ServerCommandType.acknowledgementMessage) {
 						acknowledgementsFromServer++;
 					}
-
 					newSocket.close();
 
 				} catch (SocketTimeoutException | ConnectException e) {
 					//timeout or connection error
 					//remove the server from the list, caller should see this change
-					_listOfDownServers.add(_listOfOtherServers.get(i));
-					_listOfOtherServers.remove(i);
-
-					continue;
+					//_listOfDownServers.add(_listOfOtherServers.get(i));
+					//_listOfOtherServers.remove(i);
+					System.out.print("Error with Server:"+ _listOfOtherServers.get(_myID-1).getPortAddress());
+					//System.out.println(e.toString()+e.getMessage());
+					//e.printStackTrace();
+					acknowledgementsFromServer++;
+					//continue;
 				} catch (IOException | ClassNotFoundException e) {
-					System.err.println(e.getMessage());
-					continue;
+					System.out.print("Error with Server:"+ _listOfOtherServers.get(_myID-1).getPortAddress());
+					//System.out.println(e.toString()+e.getMessage());
+					//e.printStackTrace();
+					//continue;
 				}
 			}
 		}
