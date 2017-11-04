@@ -46,5 +46,9 @@ public class Chapter implements WritableComparable<Chapter> {
 		 }
 
 	}
+	@Override
+	public String toString() {
+		return "\n"+this.word.toString()+" "+this.chapter.toString();
+	}
 
 }
