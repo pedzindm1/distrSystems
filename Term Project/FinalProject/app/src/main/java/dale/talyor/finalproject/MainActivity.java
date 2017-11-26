@@ -1,5 +1,6 @@
 package dale.talyor.finalproject;
 
+import android.app.Application;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
@@ -18,7 +19,19 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.google.gson.Gson;
+
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -41,15 +54,7 @@ public class MainActivity extends AppCompatActivity {
                 case R.id.navigation_home:
                     mTextMessage.setText("Apps");
                     mListView.setAdapter(null);
-                    List<ApplicationInfo> packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
-                    ArrayList<String> applicationNames = new ArrayList<>();
-                    for (ApplicationInfo packageInfo : packages) {
-                        if(pm.getLaunchIntentForPackage(packageInfo.packageName)!=null) {
-                            applicationNames.add(packageInfo.packageName.toString());
-                        }
-                    }
-                        ArrayAdapter<String> listAdapter = new ArrayAdapter<String>(mActivity, R.layout.rowitem, applicationNames);
-                        mListView.setAdapter(listAdapter);
+                    generateAppList();
 
                     return true;
                 case R.id.navigation_dashboard:
@@ -107,6 +112,8 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -129,15 +136,27 @@ public class MainActivity extends AppCompatActivity {
 
         pm = getPackageManager();
         List<ApplicationInfo> packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
-        ArrayList<String> applicationNames = new ArrayList<>();
+        ArrayList<ApplicationData> applicationsToStore = new ArrayList<>();
         for (ApplicationInfo packageInfo : packages) {
             if(pm.getLaunchIntentForPackage(packageInfo.packageName)!=null) {
-                applicationNames.add(packageInfo.packageName.toString());
+
+                applicationsToStore.add(new ApplicationData(packageInfo.packageName.toString(),1));
             }
         }
-        ArrayAdapter<String> listAdapter = new ArrayAdapter<String>(mActivity, R.layout.rowitem, applicationNames);
-        mListView.setAdapter(listAdapter);
-        
+        FileOutputStream fos = null;
+        try {
+            String FILENAME = "application_data";
+            fos = openFileOutput(FILENAME, Context.MODE_PRIVATE);
+            Gson gson = new Gson();
+            Applications appDataSorted= new Applications(applicationsToStore);
+            Collections.sort(appDataSorted._applicationsData);
+
+            fos.write(gson.toJson(appDataSorted).getBytes());
+            fos.close();
+        } catch (Exception e) {
+        }
+        generateAppList();
+
         mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
@@ -158,5 +177,47 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         unregisterReceiver(mReceiver);
+    }
+
+    public static String getFileContent(FileInputStream fis )
+    {
+        try{ BufferedReader br =
+                     new BufferedReader( new InputStreamReader(fis ));
+
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while(( line = br.readLine()) != null ) {
+                sb.append( line );
+                sb.append( '\n' );
+            }
+            return sb.toString();
+        }catch (Exception e){
+
+        }
+        return null;
+    }
+
+    private void generateAppList() {
+        Applications applications=null;
+        FileInputStream fos = null;
+        try {
+            String FILENAME = "application_data";
+            fos = openFileInput(FILENAME);
+            String applicationData=  getFileContent(fos);
+            Gson gson  = new Gson();
+            applications=gson.fromJson(applicationData,Applications.class);
+            fos.close();
+        } catch (FileNotFoundException e) {
+        } catch (IOException e) {
+        }
+        ArrayList<String> applicationNames = new ArrayList<>();
+        int index=1;
+        for (ApplicationData appInfo : applications._applicationsData) {
+            applicationNames.add(index+" - "+appInfo.toString());
+            index++;;
+
+        }
+        ArrayAdapter<String> listAdapter = new ArrayAdapter<String>(mActivity, R.layout.rowitem, applicationNames);
+        mListView.setAdapter(listAdapter);
     }
 }

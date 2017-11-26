@@ -91,8 +91,8 @@ public class myBroadcastReceiver extends BroadcastReceiver {
 
                                     @Override
                                     public void onSuccess() {
-                                        // WiFiDirectBroadcastReceiver will notify us. Ignore for now.
                                         Toast.makeText(mActivity.getApplicationContext(), "connected", Toast.LENGTH_LONG).show();
+
 
                                     }
 
