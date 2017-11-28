@@ -77,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
                 case R.id.navigation_notifications:
                     mTextMessage.setText("Creating Group, Please Connect");
                     mListView.setAdapter(null);
+
                     mManager.createGroup(mChannel, new WifiP2pManager.ActionListener() {
                         @Override
                         public void onSuccess() {
@@ -103,9 +104,25 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void onFailure(int reason) {
                             Log.v("myActivity","createGroup Failure: "+ reason);
+                            mTextMessage.setText("Group Already Created");
+                            mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
+                                @Override
+                                public void onGroupInfoAvailable(WifiP2pGroup group) {
+                                    Log.v("myActivity","Client Group Available");
+                                    if(group!=null) {
+                                        ArrayList<String> deviceNameList = new ArrayList<>();
+                                        for (WifiP2pDevice device : group.getClientList()) {
+                                            deviceNameList.add(device.deviceName + ": " + device.deviceAddress);
+                                        }
+                                        ListView mListView = findViewById(R.id.ListView);
+                                        ArrayAdapter<String> listAdapter = new ArrayAdapter<>(mActivity, R.layout.rowitem, deviceNameList);
+                                        mListView.setAdapter(listAdapter);
+                                    }
+                                }
+                            });
                         }
                     });
-                    mTextMessage.setText("Group Created");
+
                     return true;
             }
             return false;
@@ -219,5 +236,22 @@ public class MainActivity extends AppCompatActivity {
         }
         ArrayAdapter<String> listAdapter = new ArrayAdapter<String>(mActivity, R.layout.rowitem, applicationNames);
         mListView.setAdapter(listAdapter);
+    }
+
+    public Applications getApplications(){
+        Applications applications=null;
+        FileInputStream fos = null;
+        try {
+            String FILENAME = "application_data";
+            fos = openFileInput(FILENAME);
+            String applicationData=  getFileContent(fos);
+            Gson gson  = new Gson();
+            applications=gson.fromJson(applicationData,Applications.class);
+            fos.close();
+            return  applications;
+        } catch (FileNotFoundException e) {
+        } catch (IOException e) {
+        }
+        return  null;
     }
 }

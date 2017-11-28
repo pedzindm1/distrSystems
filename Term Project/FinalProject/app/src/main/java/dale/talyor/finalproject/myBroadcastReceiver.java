@@ -19,9 +19,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 import static android.net.wifi.p2p.WifiP2pManager.*;
 
@@ -35,7 +35,7 @@ public class myBroadcastReceiver extends BroadcastReceiver {
     private Channel mChannel;
     private MainActivity mActivity;
     private Collection<WifiP2pDevice> peerList;
-
+    private ServerTask serverTask;
 
     public myBroadcastReceiver(WifiP2pManager mManager, Channel mChannel, MainActivity activity) {
         this.mManager = mManager;
@@ -78,11 +78,37 @@ public class myBroadcastReceiver extends BroadcastReceiver {
                         ArrayAdapter<String> listAdapter = new ArrayAdapter<>(mActivity, R.layout.rowitem, deviceNameList);
                         mListView.setAdapter( listAdapter );
 
+                        mListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+                            @Override
+                            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                                WifiP2pDevice device = (WifiP2pDevice) peerList.toArray()[position];
+
+                                WifiP2pConfig config = new WifiP2pConfig();
+                                config.deviceAddress = device.deviceAddress;
+                                config.wps.setup = WpsInfo.PBC;
+                                mManager.cancelConnect(mChannel, new ActionListener() {
+
+                                    @Override
+                                    public void onSuccess() {
+                                        Toast.makeText(mActivity.getApplicationContext(), "disconnected", Toast.LENGTH_LONG).show();
+
+
+                                    }
+
+                                    @Override
+                                    public void onFailure(int reason) {
+
+                                    }
+                                });
+                                return true;
+                            }
+                        });
+
                         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                             @Override
                             public void onItemClick(AdapterView<?> parent, View view, int position,
                                                     long id) {
-                                 WifiP2pDevice device = (WifiP2pDevice)peerList.toArray()[position];
+                                WifiP2pDevice device = (WifiP2pDevice) peerList.toArray()[position];
 
                                 WifiP2pConfig config = new WifiP2pConfig();
                                 config.deviceAddress = device.deviceAddress;
@@ -132,14 +158,26 @@ public class myBroadcastReceiver extends BroadcastReceiver {
                         // After the group negotiation, we can determine the group owner
                         // (server).
                         if (info.groupFormed && info.isGroupOwner) {
-                            // Do whatever tasks are specific to the group owner.
-                            // One common case is creating a group owner thread and accepting
-                            // incoming connections.
+                          TextView _textView=  mActivity.findViewById(R.id.message);
+                            _textView.setText("Group Created at: "+ info.groupOwnerAddress.toString());
+
+                            if(serverTask==null) {
+                                serverTask = new ServerTask(mActivity.getApplications(), new InetSocketAddress(info.groupOwnerAddress, 8988));
+                                Thread serverThread = new Thread(serverTask);
+                                serverThread.start();
+//                                serverTask = new ServerTask();
+//                                serverTask.execute(
+//                                        new TaskParameters(mActivity.getApplications(), new InetSocketAddress(info.groupOwnerAddress, 8988))
+//                                );
+                            }
+
 
                         } else if (info.groupFormed) {
-                            // The other device acts as the peer (client). In this case,
-                            // you'll want to create a peer thread that connects
-                            // to the group owner.
+                           ClientTask clientTask = new ClientTask(mActivity.getApplications(), new InetSocketAddress(info.groupOwnerAddress, 8988));
+                            new Thread(clientTask).start();
+//                            new ClientTask().execute(
+//                                    new TaskParameters(mActivity.getApplications(),new InetSocketAddress(info.groupOwnerAddress,8988))
+//                            );
                         }
                     }
                 });
@@ -147,11 +185,7 @@ public class myBroadcastReceiver extends BroadcastReceiver {
 
 
         } else if (WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
-            // Respond to this device's wifi state changing
-//            DeviceListFragment fragment = (DeviceListFragment) activity.getFragmentManager()
-//                    .findFragmentById(R.id.frag_list);
-//            fragment.updateThisDevice((WifiP2pDevice) intent.getParcelableExtra(
-//                    WifiP2pManager.EXTRA_WIFI_P2P_DEVICE));
+
 
         }
     }

@@ -18,6 +18,10 @@ public class ApplicationData implements  Comparable{
         return _appCount;
     }
 
+    public void set_appCount(int _appCount) {
+        this._appCount = _appCount;
+    }
+
     private int _appCount;
 
 
@@ -43,5 +47,20 @@ public class ApplicationData implements  Comparable{
         }else{
             return  1;
         }
+    }
+    @Override
+    public boolean equals(Object obj){
+        if(obj instanceof ApplicationData){
+            String toCompare =  ((ApplicationData) obj)._appName;
+            return _appName.equals(toCompare);
+        }
+        return false;
+    }
+
+
+
+    @Override
+    public int hashCode(){
+        return this._appName.hashCode();
     }
 }
