@@ -37,6 +37,12 @@ public class myBroadcastReceiver extends BroadcastReceiver {
     private Collection<WifiP2pDevice> peerList;
     private ServerTask serverTask;
 
+    public boolean isSupported() {
+        return isSupported;
+    }
+
+    private boolean isSupported = true;
+
     public myBroadcastReceiver(WifiP2pManager mManager, Channel mChannel, MainActivity activity) {
         this.mManager = mManager;
         this.mChannel = mChannel;
@@ -56,135 +62,139 @@ public class myBroadcastReceiver extends BroadcastReceiver {
                 // Wifi P2P is enabled
                 //System.console().printf("*********WIFI ENABLED*******");
             } else {
+                isSupported = false;
                 // Wi-Fi P2P is not enabled
                //mActivity.setIsWifiP2pEnabled(false);
             }
         } else if (WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
-            // Call WifiP2pManager.requestPeers() to get a list of current peers
-            // request available peers from the wifi p2p manager. This is an
-            // asynchronous call and the calling activity is notified with a
-            // callback on PeerListListener.onPeersAvailable()
-            if (mManager != null) {
-                mManager.requestPeers(mChannel,new WifiP2pManager.PeerListListener() {
-                    @Override
-                    public void onPeersAvailable(WifiP2pDeviceList peers) {
-                        Log.v("myBroadcastReceiver",peers.toString());
-                        ArrayList<String> deviceNameList = new ArrayList<>();
-                        peerList = peers.getDeviceList();
-                        for (WifiP2pDevice device:peers.getDeviceList()) {
-                            deviceNameList.add(device.deviceName+": "+device.deviceAddress);
+            if(isSupported) {
+                // Call WifiP2pManager.requestPeers() to get a list of current peers
+                // request available peers from the wifi p2p manager. This is an
+                // asynchronous call and the calling activity is notified with a
+                // callback on PeerListListener.onPeersAvailable()
+                if (mManager != null) {
+                    mManager.requestPeers(mChannel, new WifiP2pManager.PeerListListener() {
+                        @Override
+                        public void onPeersAvailable(WifiP2pDeviceList peers) {
+                            Log.v("myBroadcastReceiver", peers.toString());
+                            ArrayList<String> deviceNameList = new ArrayList<>();
+                            peerList = peers.getDeviceList();
+                            for (WifiP2pDevice device : peers.getDeviceList()) {
+                                deviceNameList.add(device.deviceName + ": " + device.deviceAddress);
+                            }
+                            ListView mListView = mActivity.findViewById(R.id.ListView);
+                            ArrayAdapter<String> listAdapter = new ArrayAdapter<>(mActivity, R.layout.rowitem, deviceNameList);
+                            mListView.setAdapter(listAdapter);
+
+                            mListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+                                @Override
+                                public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                                    if (peerList.size() >= position) {
+                                        WifiP2pDevice device = (WifiP2pDevice) peerList.toArray()[position];
+
+                                        WifiP2pConfig config = new WifiP2pConfig();
+                                        config.deviceAddress = device.deviceAddress;
+                                        config.wps.setup = WpsInfo.PBC;
+                                        mManager.cancelConnect(mChannel, new ActionListener() {
+
+                                            @Override
+                                            public void onSuccess() {
+                                                Toast.makeText(mActivity.getApplicationContext(), "disconnected", Toast.LENGTH_LONG).show();
+
+
+                                            }
+
+                                            @Override
+                                            public void onFailure(int reason) {
+
+                                            }
+                                        });
+                                    }
+                                        return true;
+
+                                }
+                            });
+
+                            mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                                @Override
+                                public void onItemClick(AdapterView<?> parent, View view, int position,
+                                                        long id) {
+                                    if (peerList.size() >= position) {
+                                        WifiP2pDevice device = (WifiP2pDevice) peerList.toArray()[position];
+
+                                        WifiP2pConfig config = new WifiP2pConfig();
+                                        config.deviceAddress = device.deviceAddress;
+                                        config.wps.setup = WpsInfo.PBC;
+                                        mManager.connect(mChannel, config, new ActionListener() {
+
+                                            @Override
+                                            public void onSuccess() {
+                                                Toast.makeText(mActivity.getApplicationContext(), "connected", Toast.LENGTH_LONG).show();
+
+
+                                            }
+
+                                            @Override
+                                            public void onFailure(int reason) {
+
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+
                         }
-                        ListView mListView =  mActivity.findViewById(R.id.ListView);
-                        ArrayAdapter<String> listAdapter = new ArrayAdapter<>(mActivity, R.layout.rowitem, deviceNameList);
-                        mListView.setAdapter( listAdapter );
 
-                        mListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-                            @Override
-                            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                                WifiP2pDevice device = (WifiP2pDevice) peerList.toArray()[position];
-
-                                WifiP2pConfig config = new WifiP2pConfig();
-                                config.deviceAddress = device.deviceAddress;
-                                config.wps.setup = WpsInfo.PBC;
-                                mManager.cancelConnect(mChannel, new ActionListener() {
-
-                                    @Override
-                                    public void onSuccess() {
-                                        Toast.makeText(mActivity.getApplicationContext(), "disconnected", Toast.LENGTH_LONG).show();
-
-
-                                    }
-
-                                    @Override
-                                    public void onFailure(int reason) {
-
-                                    }
-                                });
-                                return true;
-                            }
-                        });
-
-                        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                            @Override
-                            public void onItemClick(AdapterView<?> parent, View view, int position,
-                                                    long id) {
-                                WifiP2pDevice device = (WifiP2pDevice) peerList.toArray()[position];
-
-                                WifiP2pConfig config = new WifiP2pConfig();
-                                config.deviceAddress = device.deviceAddress;
-                                config.wps.setup = WpsInfo.PBC;
-                                mManager.connect(mChannel, config, new ActionListener() {
-
-                                    @Override
-                                    public void onSuccess() {
-                                        Toast.makeText(mActivity.getApplicationContext(), "connected", Toast.LENGTH_LONG).show();
-
-
-                                    }
-
-                                    @Override
-                                    public void onFailure(int reason) {
-
-                                    }
-                                });
-                            }
-                        });
-
-                    }
-
-                });
+                    });
+                }
             }
         } else if (WIFI_P2P_CONNECTION_CHANGED_ACTION.equals(action)) {
-            // Respond to new connection or disconnections
-            if (mManager == null) {
-                return;
-            }
+            if(isSupported) {
+                // Respond to new connection or disconnections
+                if (mManager == null) {
+                    return;
+                }
 
-            NetworkInfo networkInfo = (NetworkInfo) intent
-                    .getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
+                NetworkInfo networkInfo = (NetworkInfo) intent
+                        .getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
 
-            if (networkInfo.isConnected()) {
+                if (networkInfo.isConnected()) {
 
-                // We are connected with the other device, request connection
-                // info to find group owner IP
+                    // We are connected with the other device, request connection
+                    // info to find group owner IP
 
-                mManager.requestConnectionInfo(mChannel, new ConnectionInfoListener() {
-                    @Override
-                    public void onConnectionInfoAvailable(WifiP2pInfo info) {
-                        Log.v("myBroadcastReceiver",info.toString());
-                        // InetAddress from WifiP2pInfo struct.
-                        InetAddress groupOwnerAddress = info.groupOwnerAddress;
+                    mManager.requestConnectionInfo(mChannel, new ConnectionInfoListener() {
+                        @Override
+                        public void onConnectionInfoAvailable(WifiP2pInfo info) {
+                            Log.v("myBroadcastReceiver", info.toString());
+                            // InetAddress from WifiP2pInfo struct.
+                            InetAddress groupOwnerAddress = info.groupOwnerAddress;
 
-                        // After the group negotiation, we can determine the group owner
-                        // (server).
-                        if (info.groupFormed && info.isGroupOwner) {
-                          TextView _textView=  mActivity.findViewById(R.id.message);
-                            _textView.setText("Group Created at: "+ info.groupOwnerAddress.toString());
+                            // After the group negotiation, we can determine the group owner
+                            // (server).
+                            if (info.groupFormed && info.isGroupOwner) {
+                                TextView _textView = mActivity.findViewById(R.id.message);
+                                _textView.setText("Group Created at: " + info.groupOwnerAddress.toString());
 
-                            if(serverTask==null) {
-                                //serverTask = new ServerTask(mActivity.getApplications(), new InetSocketAddress(info.groupOwnerAddress, 8988));
-                               // Thread serverThread = new Thread(serverTask);
-                               // serverThread.start();
-                                serverTask = new ServerTask(mActivity.getApplicationContext());
-                                serverTask.execute(
+                                if (serverTask == null) {
+                                    serverTask = new ServerTask(mActivity.getApplicationContext());
+                                    serverTask.execute(
+                                            new TaskParameters(mActivity.getApplications(), new InetSocketAddress(info.groupOwnerAddress, 8988))
+                                    );
+                                }
+
+
+                            } else if (info.groupFormed) {
+                                ClientTask clientTask = new ClientTask(mActivity.getApplicationContext());
+                                clientTask.execute(
                                         new TaskParameters(mActivity.getApplications(), new InetSocketAddress(info.groupOwnerAddress, 8988))
                                 );
                             }
-
-
-                        } else if (info.groupFormed) {
-//                           ClientTask clientTask = new ClientTask(mActivity.getApplications(), new InetSocketAddress(info.groupOwnerAddress, 8988));
-//                            new Thread(clientTask).start();
-                           ClientTask clientTask = new ClientTask(mActivity.getApplicationContext());
-                            clientTask.execute(
-                                    new TaskParameters(mActivity.getApplications(),new InetSocketAddress(info.groupOwnerAddress,8988))
-                            );
                         }
-                    }
-                });
+                    });
+                }
+
             }
-
-
         } else if (WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
 
 

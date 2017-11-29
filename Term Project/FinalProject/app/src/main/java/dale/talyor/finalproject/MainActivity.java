@@ -77,7 +77,6 @@ public class MainActivity extends AppCompatActivity {
                 case R.id.navigation_notifications:
                     mTextMessage.setText("Creating Group, Please Connect");
                     mListView.setAdapter(null);
-
                     mManager.createGroup(mChannel, new WifiP2pManager.ActionListener() {
                         @Override
                         public void onSuccess() {
@@ -141,7 +140,6 @@ public class MainActivity extends AppCompatActivity {
 
         BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
-
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), new WifiP2pManager.ChannelListener() {
                     @Override
@@ -149,7 +147,8 @@ public class MainActivity extends AppCompatActivity {
                         Log.v("myActivity","Channel Disconnected");
                     }
                 });
-                mReceiver = new myBroadcastReceiver(mManager, mChannel, this);
+        mReceiver = new myBroadcastReceiver(mManager, mChannel, this);
+
 
         pm = getPackageManager();
         List<ApplicationInfo> packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
