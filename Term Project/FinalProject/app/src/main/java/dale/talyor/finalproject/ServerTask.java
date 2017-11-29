@@ -13,6 +13,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.InetSocketAddress;
@@ -48,6 +49,13 @@ public class ServerTask extends AsyncTask<TaskParameters,Integer,Void> {
             Applications clientData = (Applications) ois.readObject();
             currentData.updateApplication(clientData._applicationsData);
             saveAppData(currentData._applicationsData);
+
+            Log.d("Server", "message received");
+            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+            Log.d("Server","new message created");
+            oos.writeObject(currentData);
+            oos.flush();
+
 //            InputStream inputStream = client.getInputStream();
 //            Log.d("Server","starting Stream :"+ client.getInetAddress());
 //            BufferedReader r = new BufferedReader(new InputStreamReader(inputStream));

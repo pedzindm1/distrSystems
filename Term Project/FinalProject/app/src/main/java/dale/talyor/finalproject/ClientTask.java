@@ -1,5 +1,6 @@
 package dale.talyor.finalproject;
 
+import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
@@ -7,6 +8,7 @@ import com.google.gson.Gson;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
@@ -15,12 +17,20 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Collections;
 
 /**
  * Created by dalepedzinski on 11/28/17.
  */
 
 public class ClientTask extends AsyncTask<TaskParameters,Integer,Void> {
+
+    private  Context context;
+
+    public ClientTask(Context context) {
+        this.context = context;
+    }
 
     @Override
     protected Void doInBackground(TaskParameters... clientTaskParameters) {
@@ -35,6 +45,9 @@ public class ClientTask extends AsyncTask<TaskParameters,Integer,Void> {
             objectOutputStream.flush();
             Log.d("Client","Sent Data");
 //
+            ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
+            Applications serverData = (Applications) ois.readObject();
+            saveAppData(serverData._applicationsData);
 //            Log.d("Client","Waiting on new Data");
 //            ObjectInputStream inputObjectStream =  new clientSocket.getInputStream();
 //            Log.d("Client","new Data started");
@@ -55,6 +68,20 @@ public class ClientTask extends AsyncTask<TaskParameters,Integer,Void> {
             Log.d("ClientError",e.toString());
         }
         return  null;
+    }
+    private void saveAppData(ArrayList<ApplicationData> appsToStore){
+        FileOutputStream fos = null;
+        try {
+            String FILENAME = "application_data";
+            fos = this.context.openFileOutput(FILENAME, Context.MODE_PRIVATE);
+            Gson gson = new Gson();
+            Applications appDataSorted= new Applications(appsToStore);
+            Collections.sort(appDataSorted._applicationsData);
+
+            fos.write(gson.toJson(appDataSorted).getBytes());
+            fos.close();
+        } catch (Exception e) {
+        }
     }
 }
 //public class ClientTask implements Runnable {

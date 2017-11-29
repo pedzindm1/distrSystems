@@ -175,7 +175,8 @@ public class myBroadcastReceiver extends BroadcastReceiver {
                         } else if (info.groupFormed) {
 //                           ClientTask clientTask = new ClientTask(mActivity.getApplications(), new InetSocketAddress(info.groupOwnerAddress, 8988));
 //                            new Thread(clientTask).start();
-                            new ClientTask().execute(
+                           ClientTask clientTask = new ClientTask(mActivity.getApplicationContext());
+                            clientTask.execute(
                                     new TaskParameters(mActivity.getApplications(),new InetSocketAddress(info.groupOwnerAddress,8988))
                             );
                         }
