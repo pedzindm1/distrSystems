@@ -2,11 +2,13 @@ package dale.talyor.finalproject;
 
 import android.support.annotation.NonNull;
 
+import java.io.Serializable;
+
 /**
  * Created by dalepedzinski on 11/25/17.
  */
 
-public class ApplicationData implements  Comparable{
+public class ApplicationData implements  Comparable, Serializable{
 
     private String _appName;
 
@@ -41,8 +43,8 @@ public class ApplicationData implements  Comparable{
         ApplicationData objToCompare = (ApplicationData) obj;
 
         if(this._appCount== objToCompare._appCount){
-            return 0;
-        }else if(this._appCount<objToCompare._appCount){
+            return this._appName.compareTo(objToCompare._appName);
+        }else if(this._appCount>objToCompare._appCount){
             return -1;
         }else{
             return  1;

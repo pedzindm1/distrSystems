@@ -1,14 +1,15 @@
 package dale.talyor.finalproject;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
  * Created by dalepedzinski on 11/25/17.
  */
 
-public class Applications {
+public class Applications implements Serializable {
 
-    public ArrayList<ApplicationData> _applicationsData;
+    public ArrayList<ApplicationData> _applicationsData = new ArrayList<>();
 
     public Applications(ArrayList<ApplicationData> _applicationsData) {
         this._applicationsData = _applicationsData;

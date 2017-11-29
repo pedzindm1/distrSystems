@@ -162,22 +162,22 @@ public class myBroadcastReceiver extends BroadcastReceiver {
                             _textView.setText("Group Created at: "+ info.groupOwnerAddress.toString());
 
                             if(serverTask==null) {
-                                serverTask = new ServerTask(mActivity.getApplications(), new InetSocketAddress(info.groupOwnerAddress, 8988));
-                                Thread serverThread = new Thread(serverTask);
-                                serverThread.start();
-//                                serverTask = new ServerTask();
-//                                serverTask.execute(
-//                                        new TaskParameters(mActivity.getApplications(), new InetSocketAddress(info.groupOwnerAddress, 8988))
-//                                );
+                                //serverTask = new ServerTask(mActivity.getApplications(), new InetSocketAddress(info.groupOwnerAddress, 8988));
+                               // Thread serverThread = new Thread(serverTask);
+                               // serverThread.start();
+                                serverTask = new ServerTask(mActivity.getApplicationContext());
+                                serverTask.execute(
+                                        new TaskParameters(mActivity.getApplications(), new InetSocketAddress(info.groupOwnerAddress, 8988))
+                                );
                             }
 
 
                         } else if (info.groupFormed) {
-                           ClientTask clientTask = new ClientTask(mActivity.getApplications(), new InetSocketAddress(info.groupOwnerAddress, 8988));
-                            new Thread(clientTask).start();
-//                            new ClientTask().execute(
-//                                    new TaskParameters(mActivity.getApplications(),new InetSocketAddress(info.groupOwnerAddress,8988))
-//                            );
+//                           ClientTask clientTask = new ClientTask(mActivity.getApplications(), new InetSocketAddress(info.groupOwnerAddress, 8988));
+//                            new Thread(clientTask).start();
+                            new ClientTask().execute(
+                                    new TaskParameters(mActivity.getApplications(),new InetSocketAddress(info.groupOwnerAddress,8988))
+                            );
                         }
                     }
                 });
