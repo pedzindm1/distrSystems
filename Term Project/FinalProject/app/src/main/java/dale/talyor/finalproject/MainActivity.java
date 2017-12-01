@@ -1,11 +1,9 @@
 package dale.talyor.finalproject;
 
-import android.app.Application;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
+import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
@@ -18,21 +16,10 @@ import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import com.google.gson.Gson;
-
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -43,7 +30,13 @@ public class MainActivity extends AppCompatActivity {
     private BroadcastReceiver mReceiver;
     private IntentFilter mIntentFilter;
     private MainActivity mActivity;
-    private PackageManager pm;
+    LocalDataManager dataManager;
+    boolean isConnected = false;
+    boolean isSupported = false;
+    boolean isGroupOwner = false;
+
+
+
 
     private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
             = new BottomNavigationView.OnNavigationItemSelectedListener() {
@@ -51,78 +44,125 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public boolean onNavigationItemSelected(@NonNull MenuItem item) {
             switch (item.getItemId()) {
+                //Triggers when the user hits the Apps Button
                 case R.id.navigation_home:
-                    mTextMessage.setText("Apps");
+                    Log.d("myBroadcastReceiver","Home-Nav-Apps");
+                    //sets the Heading Text and nulls out the List on the page
+                    if(dataManager.getSystemData().nodeList.systemNodeArrayList.size()==0){
+                        mTextMessage.setText("Applications on this Device");
+                    }else{
+                        mTextMessage.setText("Applications on "+(dataManager.getSystemData().nodeList.systemNodeArrayList.size()+1)+" Devices");
+                    }
+
                     mListView.setAdapter(null);
-                    generateAppList();
+                    generateAppListView(dataManager.getSystemData());
+
+                    for (SystemNode node:dataManager.getSystemData().nodeList.systemNodeArrayList) {
+                        if(!executeCommand(node.nodeAddress.getHostAddress())){
+                            Toast.makeText(mActivity.getApplicationContext(), "Node: "+node.nodeAddress.getHostAddress()+" has disconnected", Toast.LENGTH_LONG).show();
+                            dataManager.InitialSystemData(mActivity.getPackageManager());
+                            generateAppListView(dataManager.getSystemData());
+                        }
+                    }
 
                     return true;
                 case R.id.navigation_dashboard:
-                    mTextMessage.setText("Discovering Peers");
+                    Log.d("myBroadcastReceiver","Home-Nav-Peers");
                     mListView.setAdapter(null);
-                    mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
-                        @Override
-                        public void onSuccess() {
-                            Log.v("myActivity","discoverPeers Success");
+                    if(!isConnected && isSupported && !isGroupOwner) {
+                        Log.d("myBroadcastReceiver","Home-Nav-Peers Connection=No,Supported=Yes, GroupOwner=No");
 
-                        }
+                        //search Wifi Direct protocol for Peers
+                        mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
+                            @Override
+                            public void onSuccess() {
+                                Log.d("myBroadcastReceiver","Home-Nav-Peers Success");
+                            }
 
-                        @Override
-                        public void onFailure(int reasonCode) {
-                            Log.v("myActivity","discoverPeers Failure");
-                        }
-                    });
+                            @Override
+                            public void onFailure(int reasonCode) {
+                                Log.d("myBroadcastReceiver","Home-Nav-Peers Failure");
+                            }
+                        });
+                    }else if(isConnected && isSupported && !isGroupOwner){
+                        Log.d("myBroadcastReceiver","Home-Nav-Peers Connection=Yes,Supported=Yes, GroupOwner=No");
+                        mTextMessage.setText("You are connected to a group");
 
+                    }else if(isConnected && isSupported && isGroupOwner){
+                        Log.d("myBroadcastReceiver","Home-Nav-Peers Connection=Yes,Supported=Yes, GroupOwner=Yes");
+                        mTextMessage.setText("You are the group owner");
+                    }else if (!isSupported){
+                        mTextMessage.setText("Turn on Wifi to discover devices");
+                        Log.d("myBroadcastReceiver","Home-Nav-Peers Connection="+mActivity.isConnected+",Supported=NO, GroupOwner="+mActivity.isGroupOwner);
+                    }else{
+                        Log.d("myBroadcastReceiver","Home-Nav-Peers Connection="+mActivity.isConnected+",Supported="+mActivity.isSupported+", GroupOwner="+mActivity.isGroupOwner);
+                        mTextMessage.setText("Restart the application");
+                    }
                     return true;
                 case R.id.navigation_notifications:
-                    mTextMessage.setText("Creating Group, Please Connect");
+                    Log.d("myBroadcastReceiver","Home-Nav-Groups");
                     mListView.setAdapter(null);
-                    mManager.createGroup(mChannel, new WifiP2pManager.ActionListener() {
-                        @Override
-                        public void onSuccess() {
-                            Log.v("myActivity","createGroup Success");
-                            // Device is ready to accept incoming connections from peers.
-                           // mTextMessage.setText("Successfully Created a Group");
-                            mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
-                                @Override
-                                public void onGroupInfoAvailable(WifiP2pGroup group) {
-                                    Log.v("myActivity","Client Group Available");
-                                    if(group!=null) {
-                                        ArrayList<String> deviceNameList = new ArrayList<>();
-                                        for (WifiP2pDevice device : group.getClientList()) {
-                                            deviceNameList.add(device.deviceName + ": " + device.deviceAddress);
+                    if(!isConnected && isSupported && !isGroupOwner) {
+                        Log.d("myBroadcastReceiver","Home-Nav-Groups Connection=No,Supported=Yes, GroupOwner=No");
+                        mTextMessage.setText("Creating Group, Please wait");
+                        mManager.createGroup(mChannel, new WifiP2pManager.ActionListener() {
+                            @Override
+                            public void onSuccess() {
+                                Log.d("myBroadcastReceiver","Home-Nav-Groups Group Success");
+                                mActivity.isGroupOwner=true;
+                                mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
+                                    @Override
+                                    public void onGroupInfoAvailable(WifiP2pGroup group) {
+                                        if(group!=null) {
+                                            Log.d("myBroadcastReceiver", "Home-Nav-Groups Group" + group.toString());
                                         }
-                                        ListView mListView = findViewById(R.id.ListView);
-                                        ArrayAdapter<String> listAdapter = new ArrayAdapter<>(mActivity, R.layout.rowitem, deviceNameList);
-                                        mListView.setAdapter(listAdapter);
                                     }
-                                }
-                            });
-                        }
+                                });
+                            }
 
-                        @Override
-                        public void onFailure(int reason) {
-                            Log.v("myActivity","createGroup Failure: "+ reason);
-                            mTextMessage.setText("Group Already Created");
-                            mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
-                                @Override
-                                public void onGroupInfoAvailable(WifiP2pGroup group) {
-                                    Log.v("myActivity","Client Group Available");
-                                    if(group!=null) {
-                                        ArrayList<String> deviceNameList = new ArrayList<>();
-                                        for (WifiP2pDevice device : group.getClientList()) {
-                                            deviceNameList.add(device.deviceName + ": " + device.deviceAddress);
+                            @Override
+                            public void onFailure(int reason) {
+                                if(reason==2) {
+                                    mTextMessage.setText("Try again");
+                                    mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
+                                        @Override
+                                        public void onSuccess() {
+                                            mActivity.isGroupOwner=false;
                                         }
-                                        ListView mListView = findViewById(R.id.ListView);
-                                        ArrayAdapter<String> listAdapter = new ArrayAdapter<>(mActivity, R.layout.rowitem, deviceNameList);
-                                        mListView.setAdapter(listAdapter);
-                                    }
-                                }
-                            });
-                        }
-                    });
 
-                    return true;
+                                        @Override
+                                        public void onFailure(int reason) {
+
+                                        }
+                                    });
+                                }
+                                Log.d("myBroadcastReceiver","Home-Nav-Groups Group Failed "+reason);
+                            }
+                        });
+                    }else if(!isConnected && isSupported && isGroupOwner){
+                        Log.d("myBroadcastReceiver","Home-Nav-Groups Connection=NO,Supported=Yes, GroupOwner=Yes");
+
+                        mTextMessage.setText("Your group was already created");
+                        SystemData currentData =dataManager.getSystemData();
+                        generateDeviceListView(currentData);
+                    }
+                    else if(isConnected && isSupported && isGroupOwner){
+                        Log.d("myBroadcastReceiver","Home-Nav-Groups Connection=Yes,Supported=Yes, GroupOwner=Yes");
+                        mTextMessage.setText("Your group was created at: " + dataManager.getSystemData().groupOwnerAddress);
+                       SystemData currentData =dataManager.getSystemData();
+                        generateDeviceListView(currentData);
+                    }else if(isConnected && isSupported && !isGroupOwner){
+                        Log.d("myBroadcastReceiver","Home-Nav-Groups Connection=Yes,Supported=Yes, GroupOwner=No");
+                        mTextMessage.setText("You are connected to: " +dataManager.getSystemData().groupOwnerAddress);
+                       // generateDeviceListView(dataManager.getSystemData());
+                    }else if (!isSupported){
+                        Log.d("myBroadcastReceiver","Home-Nav-Groups Connection="+mActivity.isConnected+",Supported="+mActivity.isSupported+", GroupOwner="+mActivity.isGroupOwner);
+                        mTextMessage.setText("Turn on Wifi to create group");
+                    }else{
+                        Log.d("myBroadcastReceiver","Home-Nav-Groups Connection="+mActivity.isConnected+",Supported="+mActivity.isSupported+", GroupOwner="+mActivity.isGroupOwner);
+                        mTextMessage.setText("Restart the application");
+                    }
+                 return true;
             }
             return false;
         }
@@ -133,6 +173,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        WifiManager wifiManager = (WifiManager)this.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        wifiManager.setWifiEnabled(true);
+
         setContentView(R.layout.activity_main);
         mActivity = this;
         mTextMessage = (TextView) findViewById(R.id.message);
@@ -149,29 +192,12 @@ public class MainActivity extends AppCompatActivity {
                 });
         mReceiver = new myBroadcastReceiver(mManager, mChannel, this);
 
-
-        pm = getPackageManager();
-        List<ApplicationInfo> packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
-        ArrayList<ApplicationData> applicationsToStore = new ArrayList<>();
-        for (ApplicationInfo packageInfo : packages) {
-            if(pm.getLaunchIntentForPackage(packageInfo.packageName)!=null) {
-
-                applicationsToStore.add(new ApplicationData(packageInfo.packageName.toString(),1));
-            }
-        }
-        FileOutputStream fos = null;
-        try {
-            String FILENAME = "application_data";
-            fos = openFileOutput(FILENAME, Context.MODE_PRIVATE);
-            Gson gson = new Gson();
-            Applications appDataSorted= new Applications(applicationsToStore);
-            Collections.sort(appDataSorted._applicationsData);
-
-            fos.write(gson.toJson(appDataSorted).getBytes());
-            fos.close();
-        } catch (Exception e) {
-        }
-        generateAppList();
+        dataManager = new LocalDataManager(this);
+        dataManager.InitialSystemData(this.getPackageManager());
+        generateAppListView(dataManager.getSystemData());
+        isConnected = false;
+        isSupported = false;
+        isGroupOwner = false;
 
         mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
@@ -182,75 +208,95 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+
+
     /* register the broadcast receiver with the intent values to be matched */
     @Override
     protected void onResume() {
         super.onResume();
+        Log.d("myBroadcastReceiver","Home-OnResume");
         registerReceiver(mReceiver, mIntentFilter);
     }
     /* unregister the broadcast receiver */
     @Override
     protected void onPause() {
         super.onPause();
+        Log.d("myBroadcastReceiver","Home-OnPause");
         unregisterReceiver(mReceiver);
     }
 
-    public static String getFileContent(FileInputStream fis )
-    {
-        try{ BufferedReader br =
-                     new BufferedReader( new InputStreamReader(fis ));
+    @Override
+    protected void onStop(){
+        super.onStop();
+        Log.d("myBroadcastReceiver","Home-OnStop");
+        if(isGroupOwner){
+            mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
+                @Override
+                public void onSuccess() {
+                    mActivity.isGroupOwner=false;
+                }
 
-            StringBuilder sb = new StringBuilder();
-            String line;
-            while(( line = br.readLine()) != null ) {
-                sb.append( line );
-                sb.append( '\n' );
-            }
-            return sb.toString();
-        }catch (Exception e){
+                @Override
+                public void onFailure(int reason) {
 
+                }
+            });
         }
-        return null;
+
+    }
+    private boolean executeCommand(String address){
+        System.out.println("executeCommand");
+        Runtime runtime = Runtime.getRuntime();
+        try
+        {
+            Process  mIpAddrProcess = runtime.exec("/system/bin/ping -c 1 "+address);
+            int mExitValue = mIpAddrProcess.waitFor();
+            System.out.println(" mExitValue "+mExitValue);
+            if(mExitValue==0){
+                return true;
+            }else{
+                return false;
+            }
+        }
+        catch (InterruptedException ignore)
+        {
+            ignore.printStackTrace();
+            System.out.println(" Exception:"+ignore);
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+            System.out.println(" Exception:"+e);
+        }
+        return false;
     }
 
-    private void generateAppList() {
-        Applications applications=null;
-        FileInputStream fos = null;
-        try {
-            String FILENAME = "application_data";
-            fos = openFileInput(FILENAME);
-            String applicationData=  getFileContent(fos);
-            Gson gson  = new Gson();
-            applications=gson.fromJson(applicationData,Applications.class);
-            fos.close();
-        } catch (FileNotFoundException e) {
-        } catch (IOException e) {
-        }
+
+    protected void generateAppListView(SystemData systemData) {
+
         ArrayList<String> applicationNames = new ArrayList<>();
         int index=1;
-        for (ApplicationData appInfo : applications._applicationsData) {
+        for (ApplicationData appInfo : systemData.appDataList.listOfApplications) {
             applicationNames.add(index+" - "+appInfo.toString());
+            Log.d("myBroadcastReceiver","Home-App-"+appInfo.toString());
             index++;;
-
         }
         ArrayAdapter<String> listAdapter = new ArrayAdapter<String>(mActivity, R.layout.rowitem, applicationNames);
         mListView.setAdapter(listAdapter);
     }
 
-    public Applications getApplications(){
-        Applications applications=null;
-        FileInputStream fos = null;
-        try {
-            String FILENAME = "application_data";
-            fos = openFileInput(FILENAME);
-            String applicationData=  getFileContent(fos);
-            Gson gson  = new Gson();
-            applications=gson.fromJson(applicationData,Applications.class);
-            fos.close();
-            return  applications;
-        } catch (FileNotFoundException e) {
-        } catch (IOException e) {
+    private void generateDeviceListView(SystemData systemData) {
+        Log.d("myBroadcastReceiver","Home-Device-"+systemData);
+        ArrayList<String> applicationNames = new ArrayList<>();
+        int index=1;
+        for (SystemNode nodeInfo : systemData.nodeList.systemNodeArrayList) {
+            applicationNames.add(nodeInfo.nodeName+":"+nodeInfo.nodeAddress.getAddress());
+            Log.d("myBroadcastReceiver","Home-Device-"+nodeInfo.nodeName+":"+nodeInfo.nodeAddress.getAddress());
+            index++;;
         }
-        return  null;
+        ArrayAdapter<String> listAdapter = new ArrayAdapter<String>(mActivity, R.layout.rowitem, applicationNames);
+        mListView.setAdapter(listAdapter);
     }
+
+
 }

@@ -10,41 +10,40 @@ import java.io.Serializable;
 
 public class ApplicationData implements  Comparable, Serializable{
 
-    private String _appName;
+    private String appName;
 
-    public String get_appName() {
-        return _appName;
+    private int appCount;
+
+    public String getAppName() {
+        return appName;
     }
 
-    public int get_appCount() {
-        return _appCount;
+    public int getAppCount() {
+        return appCount;
     }
 
-    public void set_appCount(int _appCount) {
-        this._appCount = _appCount;
+    public void setAppCount(int _appCount) {
+        this.appCount = _appCount;
     }
-
-    private int _appCount;
 
 
     public ApplicationData(String _appName, int _appCount) {
-        this._appName = _appName;
-        this._appCount = _appCount;
+        this.appName = _appName;
+        this.appCount = _appCount;
     }
 
     @Override
     public String toString(){
-        return this._appName+" : "+this._appCount;
+        return this.appName+" : "+this.appCount;
     }
 
     @Override
     public int compareTo(@NonNull Object obj) {
 
         ApplicationData objToCompare = (ApplicationData) obj;
-
-        if(this._appCount== objToCompare._appCount){
-            return this._appName.compareTo(objToCompare._appName);
-        }else if(this._appCount>objToCompare._appCount){
+        if(this.appCount== objToCompare.appCount){
+            return this.appName.compareTo(objToCompare.appName);
+        }else if(this.appCount>objToCompare.appCount){
             return -1;
         }else{
             return  1;
@@ -53,8 +52,8 @@ public class ApplicationData implements  Comparable, Serializable{
     @Override
     public boolean equals(Object obj){
         if(obj instanceof ApplicationData){
-            String toCompare =  ((ApplicationData) obj)._appName;
-            return _appName.equals(toCompare);
+            String toCompare =  ((ApplicationData) obj).appName;
+            return appName.equals(toCompare);
         }
         return false;
     }
@@ -63,6 +62,6 @@ public class ApplicationData implements  Comparable, Serializable{
 
     @Override
     public int hashCode(){
-        return this._appName.hashCode();
+        return this.appName.hashCode();
     }
 }

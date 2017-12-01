@@ -4,133 +4,58 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
-import com.google.gson.Gson;
-
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Collections;
 
 /**
  * Created by dalepedzinski on 11/28/17.
  */
 
-public class ClientTask extends AsyncTask<TaskParameters,Integer,Void> {
-
-    private  Context context;
+public class ClientTask extends AsyncTask<TaskParameters,Integer,Void>
+{
+    private Context context;
+    private LocalDataManager dataManager;
 
     public ClientTask(Context context) {
         this.context = context;
+        this.dataManager = new LocalDataManager(context);
     }
 
     @Override
-    protected Void doInBackground(TaskParameters... clientTaskParameters) {
+    protected Void doInBackground(TaskParameters... taskData) {
         try {
-            Socket clientSocket = new Socket(clientTaskParameters[0].getServerInfo().getAddress(), clientTaskParameters[0].getServerInfo().getPort());
-            Log.d("Client","Starting Connection");
+            if(taskData[0].systemData!=null) {
+                Log.d("myBroadcastReceiver","ClientTask-"+taskData[0].systemData.groupOwnerAddress+":"+taskData[0].systemData.groupOwnerPort);
+                Socket clientSocket = new Socket(taskData[0].systemData.groupOwnerAddress, taskData[0].systemData.groupOwnerPort);
+                Log.d("myBroadcastReceiver","ClientTask-Connected");
 
-            Log.d("Client","Connected");
+                Log.d("myBroadcastReceiver","ClientTask-Connected -"+taskData[0].systemData.groupOwnerAddress+":"+taskData[0].systemData.groupOwnerPort);
 
-            ObjectOutputStream objectOutputStream = new ObjectOutputStream(clientSocket.getOutputStream());
-            objectOutputStream.writeObject(clientTaskParameters[0].getApplications());
-            objectOutputStream.flush();
-            Log.d("Client","Sent Data");
-//
-            ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
-            Applications serverData = (Applications) ois.readObject();
-            saveAppData(serverData._applicationsData);
-//            Log.d("Client","Waiting on new Data");
-//            ObjectInputStream inputObjectStream =  new clientSocket.getInputStream();
-//            Log.d("Client","new Data started");
-//            BufferedReader r = new BufferedReader(new InputStreamReader(inputStream));
-//            StringBuilder total = new StringBuilder();
-//            String line;
-//            while ((line = r.readLine()) != null) {
-//                total.append(line);
-//                Log.d("Client","new Data :"+ line);
-//            }
-//            Applications appDataFromClient= gson.fromJson(total.toString(), Applications.class);
-//            savedData.updateApplication(appDataFromClient._applicationsData);
-//            Log.d("Client","Received Data");
-            clientSocket.close();
-            Log.d("Client","Done");
+                ObjectOutputStream objectOutputStream = new ObjectOutputStream(clientSocket.getOutputStream());
+                objectOutputStream.writeObject(taskData[0].systemData);
+                objectOutputStream.flush();
+                Log.d("myBroadcastReceiver","ClientTask-Data Sent");
 
+                ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
+                Log.d("myBroadcastReceiver","ClientTask-Data Received");
+                SystemData systemState = (SystemData) ois.readObject();
+                dataManager.saveSystemData(systemState);
+                Log.d("myBroadcastReceiver","ClientTask-Data Saved");
+
+                clientSocket.close();
+                Log.d("myBroadcastReceiver","ClientTask-Connection closed");
+            }else{
+                Log.d("myBroadcastReceiver","ClientTask-Error");
+            }
         }catch (Exception e){
-            Log.d("ClientError",e.toString());
+            e.printStackTrace();
+            Log.d("myBroadcastReceiver","ClientTask-Error"+e.getMessage());
         }
         return  null;
     }
-    private void saveAppData(ArrayList<ApplicationData> appsToStore){
-        FileOutputStream fos = null;
-        try {
-            String FILENAME = "application_data";
-            fos = this.context.openFileOutput(FILENAME, Context.MODE_PRIVATE);
-            Gson gson = new Gson();
-            Applications appDataSorted= new Applications(appsToStore);
-            Collections.sort(appDataSorted._applicationsData);
 
-            fos.write(gson.toJson(appDataSorted).getBytes());
-            fos.close();
-        } catch (Exception e) {
-        }
-    }
+
+
 }
-//public class ClientTask implements Runnable {
-//
-//    private InetSocketAddress serverInfo;
-//    private Applications applications;
-//
-//    public ClientTask(Applications applications, InetSocketAddress serverInfo) {
-//        this.serverInfo = serverInfo;
-//        this.applications = applications;
-//    }
-//
-//
-//    @Override
-//    public void run() {
-//        try {
-//            Socket clientSocket = new Socket();
-//            Log.d("Client","Starting Connection");
-//            clientSocket.bind(null);
-//            clientSocket.setReuseAddress(true);
-//            clientSocket.connect(this.serverInfo,200);
-//            Log.d("Client","Connected");
-//            OutputStream out = clientSocket.getOutputStream();
-//            Applications savedData=this.applications;
-//            Log.d("Client",savedData._applicationsData.toString());
-//            Gson gson = new Gson();
-//            out.write(gson.toJson(savedData).getBytes());
-//            out.flush();
-//
-//            Log.d("Client","Sent Data");
-//            Log.d("Client","Waiting on new Data");
-//            InputStream inputStream = clientSocket.getInputStream();
-//            Log.d("Client","new Data started");
-//            BufferedReader r = new BufferedReader(new InputStreamReader(inputStream));
-//            StringBuilder total = new StringBuilder();
-//            String line;
-//            while ((line = r.readLine()) != null) {
-//                total.append(line);
-//                Log.d("Client","new Data :"+ line);
-//            }
-//            Applications appDataFromClient= gson.fromJson(total.toString(), Applications.class);
-//            savedData.updateApplication(appDataFromClient._applicationsData);
-//            Log.d("Client","Received Data");
-//            clientSocket.close();
-//            Log.d("Client","Done");
-//
-//        }catch (Exception e){
-//            Log.d("ClientError",e.toString());
-//        }
-//    }
-//}
 

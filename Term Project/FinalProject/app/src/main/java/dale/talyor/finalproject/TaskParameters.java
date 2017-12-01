@@ -8,28 +8,12 @@ import java.net.InetSocketAddress;
 
 public class TaskParameters {
 
-    public TaskParameters(Applications applications, InetSocketAddress server) {
-        this.applications = applications;
-        this.ServerInfo = server;
+
+    protected SystemData systemData;
+
+    public TaskParameters(SystemData systemInfo) {
+        this.systemData = systemInfo;
+        //this.serverInfo = server;
     }
 
-    public Applications getApplications() {
-        return applications;
-    }
-
-    public void setApplications(Applications applications) {
-        this.applications = applications;
-    }
-
-    private Applications applications;
-
-    public InetSocketAddress getServerInfo() {
-        return ServerInfo;
-    }
-
-    public void setServerInfo(InetSocketAddress serverURL) {
-        this.ServerInfo = serverURL;
-    }
-
-    private InetSocketAddress ServerInfo;
 }
