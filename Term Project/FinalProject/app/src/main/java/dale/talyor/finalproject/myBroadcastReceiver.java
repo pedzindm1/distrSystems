@@ -120,7 +120,7 @@ public class myBroadcastReceiver extends BroadcastReceiver {
                                 SystemData systemState = mActivity.dataManager.getSystemData();
 
                                 for (WifiP2pDevice device : peers.getDeviceList()) {
-                                    currentNodeState.systemNodeArrayList.add(new SystemNode(device.deviceName,device.deviceAddress));
+                                   // currentNodeState.systemNodeArrayList.add(new SystemNode(device.deviceName,device.deviceAddress));
                                     deviceNameList.add(device.deviceName + ": " + device.deviceAddress);
                                     Log.d("myBroadcastReceiver","Device: "+device.deviceName + ": " + device.deviceAddress);
                                 }
@@ -146,6 +146,9 @@ public class myBroadcastReceiver extends BroadcastReceiver {
                                                     mActivity.isConnected = true;
                                                     Toast.makeText(mActivity.getApplicationContext(), "connected", Toast.LENGTH_LONG).show();
                                                     WifiP2pDevice device= (WifiP2pDevice) peerList.toArray()[position];
+                                                    SystemData systemState = mActivity.dataManager.getSystemData();
+                                                    systemState.nodeList.systemNodeArrayList.add(new SystemNode(device.deviceName,device.deviceAddress));
+
                                                     Log.d("myBroadcastReceiver","Connected: "+ device.deviceName+ ": " + device.deviceAddress);
 
                                                 }

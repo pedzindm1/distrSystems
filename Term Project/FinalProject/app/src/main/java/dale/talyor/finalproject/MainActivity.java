@@ -57,14 +57,6 @@ public class MainActivity extends AppCompatActivity {
                     mListView.setAdapter(null);
                     generateAppListView(dataManager.getSystemData());
 
-                    for (SystemNode node:dataManager.getSystemData().nodeList.systemNodeArrayList) {
-                        if(!executeCommand(node.nodeAddress.getHostAddress())){
-                            Toast.makeText(mActivity.getApplicationContext(), "Node: "+node.nodeAddress.getHostAddress()+" has disconnected", Toast.LENGTH_LONG).show();
-                            dataManager.InitialSystemData(mActivity.getPackageManager());
-                            generateAppListView(dataManager.getSystemData());
-                        }
-                    }
-
                     return true;
                 case R.id.navigation_dashboard:
                     Log.d("myBroadcastReceiver","Home-Nav-Peers");
@@ -290,8 +282,8 @@ public class MainActivity extends AppCompatActivity {
         ArrayList<String> applicationNames = new ArrayList<>();
         int index=1;
         for (SystemNode nodeInfo : systemData.nodeList.systemNodeArrayList) {
-            applicationNames.add(nodeInfo.nodeName+":"+nodeInfo.nodeAddress.getAddress());
-            Log.d("myBroadcastReceiver","Home-Device-"+nodeInfo.nodeName+":"+nodeInfo.nodeAddress.getAddress());
+            applicationNames.add(nodeInfo.nodeAddress.getHostAddress());
+            Log.d("myBroadcastReceiver","Home-Device-"+nodeInfo.nodeAddress.getHostAddress());
             index++;;
         }
         ArrayAdapter<String> listAdapter = new ArrayAdapter<String>(mActivity, R.layout.rowitem, applicationNames);

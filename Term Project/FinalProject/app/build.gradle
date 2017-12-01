@@ -14,7 +14,7 @@ android {
         applicationId "dale.talyor.finalproject"
         minSdkVersion 17
         targetSdkVersion 26
-        versionCode 3
+        versionCode 4
         versionName "1.1"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -25,7 +25,7 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.config
-            debuggable true
+            debuggable false
         }
         debug {
             signingConfig signingConfigs.config
