@@ -97,10 +97,6 @@ public class myBroadcastReceiver extends BroadcastReceiver {
 
         } else if (WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
             Log.d("myBroadcastReceiver","Peers Changed");
-            // Call WifiP2pManager.requestPeers() to get a list of current peers
-            // request available peers from the wifi p2p manager. This is an
-            // asynchronous call and the calling activity is notified with a
-            // callback on PeerListListener.onPeersAvailable()
             if(mActivity.isSupported & !mActivity.isConnected && !mActivity.isGroupOwner) {
                 Log.d("myBroadcastReceiver","Wifi is on, Not Connected and Not group owner");
                     if (mManager != null) {
